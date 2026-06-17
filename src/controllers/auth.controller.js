@@ -1,4 +1,4 @@
-﻿const AuthService = require('../services/auth.service');
+const AuthService = require('../services/auth.service');
 const { REFRESH_TOKEN_COOKIE_NAME } = require('../constants/auth.constants');
 const UserModel = require('../models/user.model');
 
@@ -82,6 +82,26 @@ exports.getMe = async (req, res, next) => {
   try {
     const user = await UserModel.findById(req.user.id);
     res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /auth/forgot-password
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const result = await AuthService.forgotPassword(req.body);
+    res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /auth/reset-password
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const result = await AuthService.resetPassword(req.body, res);
+    res.status(200).json({ success: true, ...result });
   } catch (err) {
     next(err);
   }

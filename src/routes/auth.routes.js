@@ -4,11 +4,13 @@ const router = express.Router();
 const ctrl = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
-const { registerSchema, loginSchema } = require('../validators/auth.validator');
+const { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../validators/auth.validator');
 
 // Public routes
 router.post('/register', validate(registerSchema), ctrl.register);
 router.post('/login',    validate(loginSchema),    ctrl.login);
+router.post('/forgot-password', validate(forgotPasswordSchema), ctrl.forgotPassword);
+router.post('/reset-password',  validate(resetPasswordSchema),  ctrl.resetPassword);
 router.post('/refresh',                            ctrl.refresh);
 router.post('/logout',                             ctrl.logout);
 

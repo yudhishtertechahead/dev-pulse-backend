@@ -38,6 +38,14 @@ const UserModel = {
       [id]
     );
     return rows[0] || null;
+  },
+
+  updatePassword: async (id, hashedPassword) => {
+    const { rows } = await query(
+      'UPDATE users SET password = $1 WHERE id = $2 RETURNING id',
+      [hashedPassword, id]
+    );
+    return rows[0] || null;
   }
 };
 

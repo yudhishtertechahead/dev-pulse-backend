@@ -3,6 +3,8 @@ const { randomUUID } = require('crypto');
 
 const UserModel = require('../models/user.model');
 const SessionModel = require('../models/session.model');
+const PasswordResetModel = require('../models/password_reset.model');
+const { sendEmail } = require('../utils/email');
 const createError = require('../utils/createError');
 const {
   generateAccessToken,
@@ -185,6 +187,96 @@ async function logoutAllSessions(userId, res) {
   res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, clearCookieOptions());
 }
 
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+
+/**
+ * Initiates the password reset flow.
+ */
+async function forgotPassword({ email }) {
+  const user = await UserModel.findByEmail(email);
+  if (!user || !user.is_active) {
+    // In development mode, give a clear error so it's easier to test
+    if (process.env.NODE_ENV !== 'production') {
+      throw createError(`User with email ${email} not found (Dev Mode only message)`, 404);
+    }
+    // Return success to prevent email enumeration attacks in production
+    return { message: 'If that email address is in our database, we will send you an email to reset your password.' };
+  }
+
+  // Delete any existing reset tokens for this user
+  await PasswordResetModel.deleteByUserId(user.id);
+
+  // Generate a reset token
+  const resetToken = randomUUID();
+  const tokenHash = hashToken(resetToken);
+  
+  // Set expiry to 1 hour from now
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  await PasswordResetModel.create({
+    userId: user.id,
+    tokenHash,
+    expiresAt
+  });
+
+  const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
+
+  // In development mode, print the link directly to the terminal for easy testing
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('\n\n=============================================================');
+    console.log('🚧 DEV MODE: Password Reset Link generated:');
+    console.log(resetLink);
+    console.log('=============================================================\n\n');
+  }
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Password Reset Request',
+    html: `
+      <h2>Password Reset</h2>
+      <p>You requested to reset your password.</p>
+      <p>Click the link below to set a new password. This link will expire in 1 hour.</p>
+      <a href="${resetLink}">Reset Password</a>
+      <p>If you did not request this, please ignore this email.</p>
+    `
+  });
+
+  return { message: 'If that email address is in our database, we will send you an email to reset your password.' };
+}
+
+// ─── Reset Password ──────────────────────────────────────────────────────────
+
+async function resetPassword({ email, token, newPassword }, res) {
+  const user = await UserModel.findByEmail(email);
+  if (!user || !user.is_active) {
+    throw createError('Invalid token or email', 400);
+  }
+
+  const tokenHash = hashToken(token);
+  const resetRecord = await PasswordResetModel.findByTokenHash(tokenHash);
+
+  if (!resetRecord || resetRecord.user_id !== user.id) {
+    throw createError('Invalid or expired password reset token', 400);
+  }
+
+  if (new Date(resetRecord.expires_at) < new Date()) {
+    await PasswordResetModel.deleteByTokenHash(tokenHash);
+    throw createError('Password reset token has expired', 400);
+  }
+
+  const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+  const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+  await UserModel.updatePassword(user.id, hashedPassword);
+  await PasswordResetModel.deleteByTokenHash(tokenHash);
+
+  // Revoke all sessions to force the user to log in again
+  await logoutAllSessions(user.id, res);
+
+  return { message: 'Password has been successfully reset. Please log in with your new password.' };
+}
+
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
 /**
@@ -250,4 +342,6 @@ module.exports = {
   logoutUser,
   logoutAllSessions,
   getUserSessions,
+  forgotPassword,
+  resetPassword,
 };

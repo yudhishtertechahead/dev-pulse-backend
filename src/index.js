@@ -3,12 +3,16 @@ const validateEnv = require('./utils/validateEnv');
 validateEnv();
 const app = require('./app');
 const { pool } = require('./config/db');
+const { initTransporter } = require('./utils/email');
 
 async function startServer() {
   try {
     // Test DB connection
     await pool.query('SELECT 1');
     console.log('PostgreSQL connected successfully');
+
+    // Initialise email transporter (verifies SMTP credentials on startup)
+    await initTransporter();
 
     // Start server
     const PORT = process.env.PORT || 3000;
