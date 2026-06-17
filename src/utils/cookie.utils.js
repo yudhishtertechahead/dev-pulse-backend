@@ -11,7 +11,7 @@ function getCookieOptions(rememberMe = false) {
   const base = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
     path: '/api/v1/auth',
   };
 
@@ -26,7 +26,7 @@ function clearCookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
     path: '/api/v1/auth',
     maxAge: 0,
     expires: new Date(0),
