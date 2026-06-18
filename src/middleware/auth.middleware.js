@@ -41,12 +41,30 @@ exports.protect = async (req, res, next) => {
       return next(createError('Invalid or expired access token', 401));
     }
 
-    const { userId, sessionId, role } = decoded;
+    const { sessionId } = decoded;
 
+    // DB session check — gives true instant revocation.
+    // The moment a session is revoked (logout / logout-all / admin),
+    // the very next protected request is blocked here, even if the
+    // access token hasn't expired yet.
+    const session = await SessionModel.findById(sessionId);
+
+    if (!session || session.revoked_at !== null) {
+      return next(createError('Session has been revoked. Please log in again.', 401));
+    }
+
+    if (!session.is_active) {
+      return next(createError('Account is deactivated. Please contact support.', 403));
+    }
+
+    // Populate req.user from the DB row, not just the token payload.
+    // This means email/name/role are always fresh, not stale from an old token.
     req.user = {
-      id: userId,
+      id: session.user_id,
+      email: session.email,
+      name: session.name,
+      role: session.role,
       sessionId,
-      role,
     };
 
     next();
