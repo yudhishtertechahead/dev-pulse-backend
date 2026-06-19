@@ -9,7 +9,12 @@
     "start": "node src/index.js",
     "migrate": "node src/config/migrate.js",
     "migrate:fresh": "node src/config/migrate.js --fresh",
-    "seed:admin": "node src/scripts/seed.admin.js"
+    "seed:admin": "node src/scripts/seed.admin.js",
+    "test": "cross-env NODE_ENV=test node src/config/migrate.js --fresh && cross-env NODE_ENV=test jest --runInBand",
+    "test:unit": "cross-env NODE_ENV=test jest tests/unit",
+    "pretest:integration": "cross-env NODE_ENV=test node src/config/migrate.js --fresh",
+    "test:integration": "cross-env NODE_ENV=test jest tests/integration --runInBand",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage --runInBand"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -26,7 +31,9 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "jest": "^30.4.2",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }
