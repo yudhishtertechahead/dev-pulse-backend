@@ -1,7 +1,9 @@
 const { protect, restrictTo } = require('../../../src/middleware/auth.middleware');
 const { verifyAccessToken } = require('../../../src/utils/token.utils');
+const SessionModel = require('../../../src/models/session.model');
 
 jest.mock('../../../src/utils/token.utils');
+jest.mock('../../../src/models/session.model');
 
 describe('Auth Middleware', () => {
   let req, res, next;
@@ -31,12 +33,29 @@ describe('Auth Middleware', () => {
       req.headers.authorization = 'Bearer validtoken';
       verifyAccessToken.mockReturnValue({ userId: '1', sessionId: 's1', role: 'user' });
       
+      // Mock SessionModel.findById to return a valid session
+      SessionModel.findById.mockResolvedValue({
+        user_id: '1',
+        role: 'user',
+        email: 'test@example.com',
+        name: 'Test User',
+        revoked_at: null,
+        is_active: true
+      });
+
       await protect(req, res, next);
       
-      expect(req.user).toEqual({ id: '1', sessionId: 's1', role: 'user' });
+      expect(req.user).toEqual({
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user',
+        sessionId: 's1'
+      });
       expect(next).toHaveBeenCalledWith();
     });
   });
+
 
   describe('restrictTo', () => {
     it('should call next with 403 if user role is not authorized', () => {
