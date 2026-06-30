@@ -8,6 +8,7 @@ const errorMiddleware = require('./middleware/error.middleware');
 const authRoutes = require('./routes/auth.routes');
 const quizRoutes = require('./routes/quiz.routes');
 const contactRoutes = require('./routes/contact.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -42,6 +43,7 @@ const authLimiter = rateLimit({
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/quizzes', quizRoutes);
 app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' })

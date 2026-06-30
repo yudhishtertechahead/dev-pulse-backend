@@ -7,6 +7,7 @@ router.use(protect); // All quiz routes are protected
 
 router.post('/', quizCtrl.submitQuiz);
 router.get('/', quizCtrl.getPastQuizzes);
+router.get('/stats', quizCtrl.getQuizStats);
 router.get('/:id', quizCtrl.getQuizDetails);
 
 module.exports = router;

@@ -109,7 +109,7 @@ async function refreshTokens(rawRefreshToken, req, res) {
     throw createError('Invalid or expired refresh token', 401);
   }
 
-  const { userId, sessionId, role } = decoded;
+  const { userId, sessionId } = decoded;
 
   // 2. PK lookup — fastest possible DB read
   const session = await SessionModel.findById(sessionId);
@@ -142,10 +142,11 @@ async function refreshTokens(rawRefreshToken, req, res) {
   }
 
   // Issue new access token — refresh token and session row are left unchanged
-
+  // Always read role from DB session row (session.role), not from the JWT payload,
+  // because the refresh token was issued without a role field (or with a stale one).
   const newAccessToken = generateAccessToken({
     userId,
-    role,
+    role: session.role,
     sessionId,
   });
 

@@ -41,6 +41,19 @@ exports.getPastQuizzes = async (req, res, next) => {
   }
 };
 
+exports.getQuizStats = async (req, res, next) => {
+  try {
+    const stats = await QuizModel.getStatsByUserId(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getQuizDetails = async (req, res, next) => {
   try {
     const quiz_id = req.params.id;
